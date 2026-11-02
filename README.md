@@ -1,18 +1,176 @@
 # Image_Fusionner
 
-A PowerShell 7 + ImageMagick tool that turns a background image into a full grid of 90×90 PNG
-tiles, then decorates individual tiles — or blocks of merged tiles — with buttons, icons, logos,
-overlays, spanning pictures, text, transparent cut-outs, and window/island borders. What to draw
-and where comes from a plain-text layout file, so a whole remote-control skin, app-launcher menu,
-or tiled dashboard is described as a list of `r<row>c<col> = !element = name` lines instead of
-being built by hand in an image editor.
+**Turn a background picture into a full set of 90×90 remote-control tiles — buttons, icons,
+logos, text and borders included — and design it all in a visual editor in your browser.**
+
+![The Image_Fusionner layout editor: a Samsung remote layout with the Info button selected and its icon settings open](docs/images/editor-overview.png)
+
+Image_Fusionner is a PowerShell 7 + ImageMagick tool. You describe a remote-control skin,
+app-launcher menu or tiled dashboard as a plain-text layout file (`r3c6 = !button = round_thick_coolwhite ; !icon = Info`),
+and `script.ps1` slices the background into a grid of PNG tiles and draws every element onto
+them. Since **v1.1.0** there's also a **layout editor**: a live preview of the grid where you
+click a tile, pick pictures from thumbnails and nudge settings with − / + buttons, and it writes
+the same text lines for you.
+
+[![Latest release](https://img.shields.io/badge/release-v1.1.0-c46a0a)](CHANGELOG.md)
+&nbsp;Windows · PowerShell 7 · ImageMagick bundled · runs 100% on your PC
+
+**Contents:** [What's new in 1.1.0](#whats-new-in-110) · [Download & first run](#download--first-run) ·
+[The layout editor](#the-layout-editor) · [How it works](#how-it-works) ·
+[Requirements](#requirements) · [Folder structure](#folder-structure) ·
+[Running the script](#running-the-script) ·
+[Walkthrough](#walkthrough-from-layout-file-to-tile-set) · [Gallery](#gallery-the-rest-of-the-samples) ·
+[Layout file reference](#layout-file-reference) · [Diorama effects](#diorama-effects) ·
+[Configuration](#configuration-reference) · [Output & naming](#output-structure--file-naming) ·
+[Caching](#caching-cleanup--preview) · [Troubleshooting](#troubleshooting) ·
+[Sharing](#sharing-the-project-github-zip) · [Credits](#credits--licences)
+
+---
+
+## What's new in 1.1.0
+
+- 🖱️ **Visual layout editor** — live preview, click/drag tile selection, thumbnail pickers,
+  hold-to-repeat − / + steppers, a font list from your PC, mouse-wheel zoom, undo/redo.
+- 💾 **Can't lose work** — saves automatically, backs up every layout before overwriting it, and
+  keeps unsaved edits in the browser if the editor stops.
+- 🪟 **No console window** — `Start GUI.cmd` runs hidden and stops by itself when you close the tab.
+- 📁 **Portable** — every copy of the folder runs its own editor on its own port and only touches
+  its own files.
+- 🎨 **Six themes** and a **Remote builder** button that jumps to the Remote Self-Control Builder.
+- 📦 **One-click GitHub zip** with oversized backgrounds shrunk inside the zip.
+
+The full list is in the [changelog](CHANGELOG.md); the release notes are in
+[docs/release-notes/v1.1.0.md](docs/release-notes/v1.1.0.md).
+
+---
+
+## Download & first run
+
+1. Download **`Image_Fusionner-v1.1.0.zip`** from the
+   [Releases](../../releases) page (or **Code → Download ZIP**).
+2. Right-click the zip → **Properties** → tick **Unblock** → **OK** (stops Windows from
+   blocking the scripts), then **Extract All…** anywhere you like — Desktop, Documents, a USB stick.
+3. Open the extracted folder and double-click **`Start GUI.cmd`**.
+   The editor opens in your browser with the eight sample layouts ready to explore.
+4. Pick a layout from the **Layout** drop-down, click a tile, change something — then press
+   **Render tiles** to make the real PNGs in `Output_Images\`.
+
+Nothing is installed: ImageMagick is bundled in `Bin\`, and everything stays inside the folder.
+If Windows refuses to run the script, see
+[If "Run with PowerShell" won't run the script](#if-run-with-powershell-wont-run-the-script).
+
+---
+
+## The layout editor
+
+Double-click **`Start GUI.cmd`**. The editor opens in your web browser and runs entirely on your
+PC — a small server (`gui.ps1`) reads `Source_Images\`, reads and writes the files in
+`Grid_layout\`, and can run `script.ps1` for you. There's no window to keep open: it shuts itself
+down a few seconds after you close the editor's browser tab. (To watch what it's doing, use
+**`Start GUI (show window).cmd`** instead.)
+
+### A live preview you can click
+
+The middle of the page is the layout drawn over its background, the same way `script.ps1`
+draws it — crop, buttons, icons, logos, text, borders, frames and the diorama effect. It's an
+approximation; **Render tiles** makes the real output. Scroll the mouse wheel over it (or use
+− / + above it) to zoom.
+
+**Click a tile** to see every line that draws on it. **Drag**, or **Shift-click**, to select a
+block; **Ctrl-click** adds single tiles. The selected tiles get an outline box (no tint over the
+picture), and the line you're editing gets a dashed one — here a four-tile frame round the HDMI
+buttons:
+
+![Four tiles selected along the bottom row, with the frame line that covers them open in the inspector](docs/images/tile-selection.png)
+
+The left column holds the layout's own settings — grid size, background, diorama effect — and
+the **View** switches (tile grid, tile names, save automatically).
+
+### Settings that start where they are
+
+<img src="docs/images/element-settings.png" alt="The settings of a Text element: size, colour, font drop-down, anchor, offsets, bold, italic and underline" width="300" align="right">
+
+Each line is a card in the inspector on the right, with one block per element (button, icon,
+text…). Open **Settings** to change it:
+
+- every value **starts from what's actually in use** — the line's own setting, or the default
+  from `script.ps1` — never from zero;
+- **−** / **+** step a number, and **holding** them keeps it changing (one undo step per hold);
+- **reset** puts a setting back to its default; the count beside *Settings* shows how many are
+  changed;
+- **Font** is a drop-down of the fonts on your PC that ImageMagick can use.
+
+Use **Add to the selected tiles** at the top to add a new line, **Add element** at the bottom
+of a card to stack another element on the same tiles, and the ↑ ↓ arrows to change the drawing
+order.
+<br clear="right">
+
+### Pick pictures, don't type them
+
+Buttons, icons, logos, overlays, images and backgrounds are chosen from thumbnails of your own
+`Source_Images\` folders, with a search box. Drop new files into `Source_Images\` and press
+**Reload Source_Images** under **View** to see them.
+
+![The picture picker showing the thick round and square buttons](docs/images/asset-picker.png)
+
+### Render, check, repeat
+
+**Render tiles** saves the layout and runs `script.ps1`. The panel under the preview (hidden
+until you click one of its tabs) has:
+
+- **Layout text** — the `.txt` file itself, editable; the preview follows as you type;
+- **Render log** — the script's output as it runs;
+- **Rendered tiles** — the preview sheets the script made, straight from `Output_Images\`;
+- **Problems** — missing pictures, tiles outside the grid and unknown elements.
+
+![The Rendered tiles tab showing the real preview sheet for the Jump-Menu layout](docs/images/rendered-tiles.png)
+
+### Your files stay safe
+
+- **Edits rewrite only the lines they touch.** Comments, blank lines and spacing in the `.txt`
+  are kept, so hand-written and editor-written layouts mix freely.
+- **Saved automatically** a moment after each change (switch it off under **View** and use
+  **Save** / Ctrl+S instead).
+- **Backed up** — before a layout is overwritten, the previous version is copied to
+  `Bin\gui_backups\` (at most one per 10 minutes, 20 kept per layout).
+- **Kept in the browser** — if the editor has stopped, a banner says so and your edits are held
+  in the browser; they're saved as soon as `Start GUI.cmd` is running again.
+- **Delete** sends a layout to the Recycle Bin, not into oblivion.
+- **New layout** starts from a blank template (2×3, 4×6, 6×9 or 8×12) without the template's
+  instruction notes, or **Duplicate** copies the one that's open. Names may use `&&` to share
+  a file prefix (`Main&&rokuTV`), shown as *Main-rokuTV* in the list.
+
+### Themes and the Remote builder
+
+Pick a look from **Theme** in the header — **Automatic** (follows Windows), **Desktop**,
+**Dark mode**, **Remote style**, **Midnight blue** and **High contrast**:
+
+![The editor in the Desktop, Dark mode, Remote style and Midnight blue themes](docs/images/themes.png)
+
+**Remote builder** opens the Remote Self-Control Builder on your remote
+(`http://remote3-c92aa0.local:10123/` by default; change it under **View**) in a browser tab —
+clicking it again goes back to that same tab instead of opening another.
+
+### Keyboard
+
+| Keys | Does |
+|---|---|
+| **Ctrl+S** | Save |
+| **Ctrl+Z** / **Ctrl+Y** | Undo / redo |
+| Arrow keys | Move between tiles |
+| **Esc** | Clear the selection / close a picker |
+
+---
+
+## How it works
 
 Think of it like a recipe, not a program: **`Source_Images\` is your pantry of ingredients** —
 buttons, icons, logos, overlays, backgrounds. **`Grid_layout\` is the recipe card** — a plain-text
 list of which ingredients go on which tile, and how. **`script.ps1` is the kitchen** that follows
 the recipe and does the actual cooking. **`Output_Images\` is the finished plate.** Nothing about
 that relationship is hidden behind code — the recipe card is a `.txt` file you can read top to
-bottom, and the pantry is just a folder of PNGs.
+bottom, and the pantry is just a folder of PNGs. The editor is simply a nicer way to write the
+recipe card.
 
 ### Why this approach
 
@@ -21,27 +179,29 @@ bottom, and the pantry is just a folder of PNGs.
 - **100% local.** No website, no account, no cloud render queue, no subscription. Everything runs
   on your machine, on your files, with no dependency on some service staying online.
 - **Easy to fix later.** If something looks off after the fact — a logo's off-centre, a label's
-  the wrong colour — you edit one line in a `.txt` recipe and re-run. As long as `Source_Images\`
-  and `Grid_layout\` still exist, the whole set can be rebuilt from scratch at any time; nothing
-  is baked in that you can't get back to by reading the recipe.
+  the wrong colour — you change one line and re-run. As long as `Source_Images\` and
+  `Grid_layout\` still exist, the whole set can be rebuilt from scratch at any time.
 - **Cheap to iterate.** The manifest cache means a small edit doesn't force a full re-render — only
   the background passes whose layout or assets actually changed get regenerated.
 - **Ready for what's next.** If Unfolded Circle ever ships state-based icons (on/off, connected/
   disconnected, that sort of thing), you're basically already set up for it — that's just another
   `!icon` or `!overlay` line added to a tile that already exists in a recipe you already have.
 
-This README doubles as a guide: it walks through one real layout end-to-end, then shows the rest
-of the samples as input/output pairs, before dropping into full syntax reference.
+The rest of this README is the guide to the script and the layout files: it walks through one
+real layout end-to-end, shows the other samples as input/output pairs, then gives the full
+syntax reference.
 
 ---
 
 ## Requirements
 
-- **PowerShell 7** (`pwsh`). The script also runs under Windows PowerShell 5.1.
+- **PowerShell 7** (`pwsh`). The script also runs under Windows PowerShell 5.1; the editor uses whichever is installed.
 - **ImageMagick** — bundled at `Bin\magick.exe`, already configured. Nothing else needs
   installing; the script shells out to that executable directly.
 - **Windows** — stale-output cleanup goes through the Recycle Bin API, so the tooling assumes
   Windows.
+- **A web browser** (Edge, Chrome or Firefox) for the optional [layout editor](#the-layout-editor).
+  It runs entirely on your own PC; nothing is uploaded anywhere.
 
 ---
 
@@ -52,24 +212,32 @@ directory as long as this layout stays intact:
 
 ```
 Image_Fusionner\
-    script.ps1                 <- the one file you run
-    README.md                  <- this file
+    script.ps1                   <- the renderer: turns every layout into tiles
+    README.md                    <- this file
+
+    Start GUI.cmd                <- opens the layout editor in your browser (no window)
+    Start GUI (show window).cmd  <- the same, keeping a console window open to watch it
+    gui.ps1                      <- the editor's small local web server
+    gui\                         <- the editor's page (index.html, app.js, style.css)
+
+    Make GitHub zip.cmd          <- builds a clean zip of the project for sharing (see below)
+    tools\make-package.ps1       <- what that button runs
 
     Bin\
-        magick.exe               <- ImageMagick (+ its support DLLs/xml/licence files)
+        magick.exe               <- ImageMagick (+ its support files and licence)
         db\                      <- processing cache, created on first run
+        gui_backups\             <- the editor's backup of each layout before it saves
+        gui_cache\               <- preview-size copies of very large backgrounds
 
     Grid_layout\                 <- THE RECIPE CARDS — layouts that get PROCESSED, one run per .txt file
         Apps-Roku.txt
         Apps-Shield.txt
         Jump-Menu.txt
-        Main&&rokuAV.txt
         Main&&rokuTV.txt
         Main&&shieldAV.txt
         Main&&shieldTV.txt
         Marantz.txt
         Samsung.txt
-        Xbox-One.txt
 
     Layout Templates\            <- BLANK starter files, one per grid size — NOT processed
         layout_2x3.txt              here; copy one into Grid_layout\ to start a new layout
@@ -87,7 +255,11 @@ Image_Fusionner\
 
     Output_Images\                <- THE FINISHED PLATE: generated tiles + preview sheets, auto-created
 
-    docs\examples\                <- static preview copies used by this README
+    VERSION                      <- the release number shown in the editor
+    CHANGELOG.md                 <- what changed in each release
+    docs\examples\                <- preview sheets used by this README
+    docs\images\                  <- editor screenshots used by this README
+    docs\release-notes\           <- release notes for GitHub releases
 ```
 
 **Only `Grid_layout\*.txt` gets rendered.** `Layout Templates\` is a library of blank starters —
@@ -106,18 +278,20 @@ it's sliced into tiles.
 
 ---
 
-## Quick start
+## Running the script
 
 1. Drop one or more background images into `Source_Images\Backgrounds\`.
 2. Add the PNGs you'll reference into the matching element folder (`Buttons`, `Icons`, `Logos`,
    `Overlays`, `Images`) — or just use what's already there; the project ships with a sizeable
    library of remote-control buttons, device/app logos, and glyph icons.
 3. Either work from an example or start fresh:
-   - To learn the syntax by example, open one of the ten layouts already sitting in
+   - To learn the syntax by example, open one of the eight layouts already sitting in
      `Grid_layout\` — the [walkthrough](#walkthrough-from-layout-file-to-tile-set) and
      [gallery](#gallery-the-rest-of-the-samples) below cover exactly what each one does.
    - To start clean, copy the matching blank from `Layout Templates\` into `Grid_layout\`,
      rename it, and write the tiles you want.
+   - Or skip the typing: double-click **`Start GUI.cmd`** and use the
+     [layout editor](#the-layout-editor) — **+ New layout** starts from a template for you.
 4. Run it. Right-click **`script.ps1`** in File Explorer and choose **Run with PowerShell**:
 
    - **Windows 10** — it's right there in the normal right-click menu.
@@ -289,28 +463,12 @@ r9c1, r9c2, r9c3, r9c4, r9c5, r9c6 = !image = marantz_banner
 
 ![Marantz output: brushed-metal background, a d-pad in the centre, Bright and ECO Mode coloured buttons above it, Info/Option/Back/Setup buttons around the sides, Trebble and Bass up/down controls at the bottom, a right-hand column framed in white listing FM/PS4/Roku/Shield/Xbox-One/Phono/Wii-U, and the Marantz wordmark banner across the very bottom](docs/examples/marantz.png)
 
-### Xbox-One.txt — 6×9, a sparse controller layout
+### Main&&rokuTV / Main&&shieldAV / Main&&shieldTV — 6×9, remote "home" screens
 
-A transparent SNES-style d-pad `!image` spread across a 3×3 block sitting directly over the
-background art, plus a handful of icon+text menu buttons:
-
-```text
-!grid = 6x9
-!background = xbox-background
-
-r1c3 = !button = square_thick_iceblue, !icon = MultiView [size=35, x=27.5, y=18, color=black], !text = "Multi<br>View" [y=18, size=12, color=black]
-r4c1, r4c2, r4c3, r5c1, r5c2, r5c3, r6c1, r6c2, r6c3 = !image = dpad_snes_transparent
-r4c5 = !button = round_thick_black, !icon = Menu [size=35, x=27.5, y=18], !text = "Menu" [y=18, size=12]
-```
-
-![Xbox-One output: a collage of game-cover art as the background, a translucent grey SNES-style d-pad overlaid in the lower-left, an iceblue Multi View button top-left, and three round black Menu buttons scattered across the right side](docs/examples/xbox-one.png)
-
-### Main&&rokuAV / Main&&rokuTV / Main&&shieldAV / Main&&shieldTV — 6×9, remote "home" screens
-
-Four device-specific home screens sharing one design: a `!frame` island across the whole top row
+Three device-specific home screens sharing one design: a `!frame` island across the whole top row
 and another across the bottom two rows, a large spanning `!text` mode title, glass-plate
 `!overlay` buttons, and a bottom banner. They demonstrate the
-[`&&` filename trick](#the--filename-trick) — four `.txt` files, four output folders, one shared
+[`&&` filename trick](#the--filename-trick) — three `.txt` files, three output folders, one shared
 `main_` file prefix:
 
 ```text
@@ -459,8 +617,8 @@ Yes/no keys accept `y/yes/on/true` and `n/no/off/false`.
 > `color=blue`).
 
 `!icon color` recolours the whole icon to a flat colour — the Samsung sample uses this to turn
-white glyph icons black on light buttons (`!icon = Help [color=...]` isn't used there, but
-`!icon = MultiView [color=black]` on Xbox-One is exactly that trick). `!text color` sets the text
+white glyph icons black on light buttons (`!icon = MultiView [color=black]` on the iceblue
+Multi View button is exactly that trick). `!text color` sets the text
 colour. Bold, italic, and underline are **faux** styles drawn with ImageMagick primitives rather
 than a real bold/italic font face, so they work with any font — see `"TV Mode"` above
 (`bold=yes, italic=yes`).
@@ -567,9 +725,10 @@ Main&&rokuTV.txt   -> folder Main-rokuTV\    files main_r1c1-...   ("rokuTV" is 
 Main&&shieldAV.txt -> folder Main-shieldAV\  files main_r1c1-...
 ```
 
-This is exactly how the four `Main&&...` samples in the gallery above stay in four separate
-output folders (`Main-rokuAV`, `Main-rokuTV`, `Main-shieldAV`, `Main-shieldTV`) while every file
-in all four shares one `main_` prefix.
+This is exactly how the three `Main&&...` samples in the gallery above stay in three separate
+output folders (`Main-rokuTV`, `Main-shieldAV`, `Main-shieldTV`) while every file in all three
+shares one `main_` prefix. (The layout editor lists these as `Main-rokuTV` and so on, matching
+the output folders.)
 
 ---
 
@@ -605,3 +764,51 @@ in all four shares one `main_` prefix.
   on a `2x3` layout).
 - **Colours inside `[ ]` misbehave** — `rgb(r,g,b)` was used; its commas get parsed as override
   separators. Use a colour name or hex code instead.
+- **The editor doesn't open** — run **`Start GUI (show window).cmd`** to see its messages. If port
+  8765 is taken by another program, run `pwsh -File gui.ps1 -Port 8790`. Without a window, its
+  messages are also written to `Bin\gui_server.log`.
+- **Several copies of Image_Fusionner** (say one unzipped in Downloads) — each copy runs its own
+  editor on its own port (8765, 8766, ...) and only ever works on its own folder. The editor shows
+  the full path of the layout file it's editing beside the layout list, so you can always see
+  which copy you're in.
+- **The editor says it has stopped** — it shuts down a few seconds after its last browser tab
+  closes. Double-click `Start GUI.cmd` again; unsaved edits are kept in the browser and saved as
+  soon as it's back.
+
+---
+
+## Sharing the project (GitHub zip)
+
+Double-click **`Make GitHub zip.cmd`**. It builds `Image_Fusionner-v<version>.zip` (for this release
+`Image_Fusionner-v1.1.0.zip`, named from the `VERSION` file) in the folder *above* the project, containing everything needed to run it and nothing that's generated:
+
+- left out: `Output_Images\`, `Bin\db\`, `Bin\gui_backups\`, `Bin\gui_cache\`, the editor's logs,
+  and any `.zip` files;
+- backgrounds over 10 MB are resized (to 4096 px on the long side) inside the zip only, so every
+  file fits GitHub's limits — your own copies aren't touched. Tiles are at most 720×1080 px, so
+  nothing visible is lost.
+
+The same rules are in `.gitignore`, so a repository made from this folder skips the same files.
+
+`Bin\magick.exe` and friends are over GitHub's 25 MB limit for drag-and-drop uploads in the
+web page. Push with **git** or **GitHub Desktop** (limit 100 MB per file), or attach the zip to a
+**Release** (limit 2 GB) — which is how `Image_Fusionner-v1.1.0.zip` is published.
+
+### Making a release
+
+1. Put the new number in `VERSION` (e.g. `1.1.0`) and add a section to `CHANGELOG.md`.
+2. Double-click **`Make GitHub zip.cmd`** → `Image_Fusionner-v1.1.0.zip`.
+3. On GitHub: **Releases → Draft a new release**, tag `v1.1.0`, title *Image_Fusionner 1.1.0*,
+   paste `docs/release-notes/v1.1.0.md` as the description, attach the zip, **Publish**.
+
+---
+
+## Credits & licences
+
+- **ImageMagick** (`Bin\`) is © ImageMagick Studio LLC, distributed under the ImageMagick
+  License — see `Bin\LICENSE.txt` and `Bin\NOTICE.txt`.
+- **Logos** in `Source_Images\Logos\` and the brand banners in `Source_Images\Images\` are
+  trademarks of their respective owners. They're included only so the sample layouts render, and
+  this project isn't affiliated with or endorsed by any of them.
+- **Background textures** in `Source_Images\Backgrounds\` come from their original creators and
+  remain under those creators' terms.
